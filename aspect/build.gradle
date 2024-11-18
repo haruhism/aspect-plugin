@@ -1,0 +1,77 @@
+plugins {
+    id 'java-gradle-plugin'
+    id 'org.jetbrains.kotlin.jvm'
+    id 'maven-publish'
+    id 'com.gradle.plugin-publish'
+}
+
+group = LIB_GROUP_ID
+version = LIB_VERSION_NAME
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+javadoc {
+    if (JavaVersion.current().isJava9Compatible()) {
+        options.addBooleanOption('html', true)
+    }
+}
+
+dependencies {
+    //gradle sdk
+    implementation gradleApi()
+    implementation 'com.android.tools.build:gradle:7.3.1'
+}
+
+gradlePlugin {
+    website = LIB_WEBSITE
+    vcsUrl = LIB_VCS_URL
+
+    plugins {
+        aspect {
+            id = 'com.crossgate.gradle.aspect'
+            displayName = LIB_DISPLAY_NAME
+            description = LIB_DESCRIPTION
+            implementationClass = 'com.crossgate.gradle.aspect.AspectGradlePlugin'
+            tags.set(['gradle', 'android', 'assemble'])
+        }
+    }
+}
+
+publishing {
+    publications {
+        aspect(MavenPublication) {
+            groupId = LIB_GROUP_ID
+            artifactId = LIB_ARTIFACT_ID
+            version = LIB_VERSION_NAME
+
+            pom {
+                name = LIB_DISPLAY_NAME
+                description = LIB_DESCRIPTION
+                url = LIB_WEBSITE
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'haruhism'
+                        name = 'nil'
+                        email = 'zhangsea0417@gmail.com'
+                    }
+                }
+                scm {
+                    connection = LIB_CONNECTION
+                    developerConnection = LIB_CONNECTION
+                    url = LIB_WEBSITE
+                }
+            }
+
+            from components.java
+        }
+    }
+}
