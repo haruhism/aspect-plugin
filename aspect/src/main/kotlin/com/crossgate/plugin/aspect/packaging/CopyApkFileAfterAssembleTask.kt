@@ -1,7 +1,8 @@
-package com.crossgate.gradle.aspect.packaging
+package com.crossgate.plugin.aspect.packaging
 
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.internal.tasks.NonIncrementalTask
+import com.crossgate.plugin.aspect.logger.GLog
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.workers.WorkAction
 import org.gradle.workers.WorkParameters
@@ -12,7 +13,7 @@ import java.nio.file.Files
 /**
  * @ClassName: CopyApkFileTask
  * @Describe: Android打包任务执行完成后复制APK文件到指定目录
- * @Author: zHy
+ * @Author: nil
  * @Date: 2024/11/11 09:57
  */
 abstract class CopyApkFileAfterAssembleTask : NonIncrementalTask() {
@@ -22,7 +23,7 @@ abstract class CopyApkFileAfterAssembleTask : NonIncrementalTask() {
         try {
             android = project.extensions.getByType(AppExtension::class.java)
         } catch (e: Exception) {
-            println("Problem occurred when getAppExtension. $e")
+            GLog.w(TAG, "Problem occurred when getAppExtension. $e")
             return
         }
 
@@ -31,14 +32,20 @@ abstract class CopyApkFileAfterAssembleTask : NonIncrementalTask() {
             return
         }
         val destFolder = File(COPY_DIRECTORY_FORMAT.format(rootDirectory))
-        if (!destFolder.exists()) {
-            destFolder.mkdirs()
-        }
         val workQueue = workerExecutor.noIsolation()
         android.applicationVariants.filter { variant ->
             // 筛选出本次打包任务包含的变量(渠道+类型)
             variant.name.equals(variantName, true)
         }.forEach { variant ->
+            val flavorName = variant.flavorName
+            val outputDir = if (flavorName.isNullOrEmpty()) {
+                destFolder
+            } else {
+                File(destFolder, flavorName)
+            }
+            if (!outputDir.exists()) {
+                outputDir.mkdirs()
+            }
             variant.outputs.forEachIndexed { index, output ->
                 val extension = output.outputFile.extension
                 val copyFileName = if (extension.isEmpty()) {
@@ -48,7 +55,7 @@ abstract class CopyApkFileAfterAssembleTask : NonIncrementalTask() {
                 }
                 workQueue.submit(CopyFileRunnable::class.javaObjectType) {
                     it.sourceFile.set(output.outputFile)
-                    it.outputFile.set(File(destFolder, copyFileName))
+                    it.outputFile.set(File(outputDir, copyFileName))
                 }
             }
         }
@@ -73,18 +80,19 @@ abstract class CopyApkFileAfterAssembleTask : NonIncrementalTask() {
                 val outputStream = FileOutputStream(outputFile)
                 Files.copy(source, outputStream)
 
-                println("copied to directory: ${outputFile.parent}")
-                println("output file name: ${outputFile.name}")
+                GLog.l(TAG, "copied to directory: ${outputFile.parent}")
+                GLog.l(TAG, "output file name: ${outputFile.name}")
             } catch (e: Exception) {
-                println("copying file with failure-> $e")
+                GLog.w(TAG, "copying file with failure-> $e")
             }
             val elapsed = System.currentTimeMillis() - startTime
-            println("copying file costs $elapsed ms")
+            GLog.l(TAG, "copying file costs $elapsed ms")
         }
     }
 
     companion object {
         const val TAG = "copyApkFileAfterAssemble"
+        const val NAME_FORMAT = "copyApkFileAfterAssemble%s"
 
         private const val COPY_DIRECTORY_FORMAT = "%s/build/outputs/"
         private const val COPY_FILE_NAME_FORMAT = "app_%s.%s"

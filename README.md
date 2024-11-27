@@ -1,2 +1,2 @@
 # AspectGradle
-A gradle aspect injection plugin
+A gradle task injection plugin
