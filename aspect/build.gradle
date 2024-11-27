@@ -1,7 +1,6 @@
 plugins {
-    id 'java-gradle-plugin'
     id 'org.jetbrains.kotlin.jvm'
-    id 'maven-publish'
+    id 'signing'
     id 'com.gradle.plugin-publish'
 }
 
@@ -15,8 +14,11 @@ java {
 
 javadoc {
     if (JavaVersion.current().isJava9Compatible()) {
-        options.addBooleanOption('html', true)
+        options.addBooleanOption('html5', true)
     }
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.addStringOption('encoding', 'UTF-8')
+    options.addStringOption('charSet', 'UTF-8')
 }
 
 dependencies {
@@ -30,19 +32,19 @@ gradlePlugin {
     vcsUrl = LIB_VCS_URL
 
     plugins {
-        aspect {
-            id = 'com.crossgate.gradle.aspect'
+        create("aspectPlugin") {
+            id = LIB_PLUGIN_ID
             displayName = LIB_DISPLAY_NAME
             description = LIB_DESCRIPTION
-            implementationClass = 'com.crossgate.gradle.aspect.AspectGradlePlugin'
-            tags.set(['gradle', 'android', 'assemble'])
+            implementationClass = 'com.crossgate.plugin.aspect.AspectGradlePlugin'
+            tags.set(['android', 'assemble', 'kotlin'])
         }
     }
 }
 
 publishing {
     publications {
-        aspect(MavenPublication) {
+        maven(MavenPublication) {
             groupId = LIB_GROUP_ID
             artifactId = LIB_ARTIFACT_ID
             version = LIB_VERSION_NAME
@@ -55,6 +57,7 @@ publishing {
                     license {
                         name = 'The Apache License, Version 2.0'
                         url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        distribution = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
                     }
                 }
                 developers {
@@ -65,13 +68,19 @@ publishing {
                     }
                 }
                 scm {
-                    connection = LIB_CONNECTION
-                    developerConnection = LIB_CONNECTION
                     url = LIB_WEBSITE
+                    connection = LIB_CONNECTION
+                    developerConnection = LIB_DEV_CONNECTION
                 }
             }
 
             from components.java
         }
     }
+}
+
+signing {
+    required { LIB_NEED_SIGNING && gradle.taskGraph.hasTask("publish") }
+    useGpgCmd()
+    sign publishing.publications.maven
 }
