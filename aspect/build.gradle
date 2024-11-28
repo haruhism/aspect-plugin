@@ -1,6 +1,5 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm'
-    id 'signing'
     id 'com.gradle.plugin-publish'
 }
 
@@ -77,10 +76,4 @@ publishing {
             from components.java
         }
     }
-}
-
-signing {
-    required { LIB_NEED_SIGNING && gradle.taskGraph.hasTask("publish") }
-    useGpgCmd()
-    sign publishing.publications.maven
 }
